@@ -194,6 +194,39 @@
             margin-top: 2px;
         }
 
+        .ot-summary-stats {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 10px 8px;
+            margin-top: 14px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+            text-align: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .ot-stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ot-stat-label {
+            font-size: 0.75rem;
+            opacity: 0.9;
+            margin-bottom: 2px;
+            white-space: nowrap;
+        }
+
+        .ot-stat-val {
+            font-size: 1.05rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
         .chart-controls {
             display: flex;
             gap: 8px;
@@ -226,10 +259,9 @@
             width: 100%;
         }
 
-        /* ปรับเพิ่มความสูงคอนเทนเนอร์เฉพาะกราฟวงกลม ป้องกันส่วนแสดงผลขาดด้านล่าง */
         .chart-container-doughnut {
             position: relative;
-            min-height: 380px;
+            min-height: 580px;
             width: 100%;
         }
 
@@ -403,6 +435,21 @@
                 <span>ฐาน + สวัสดิการ: <b id="totalBaseAndAllowance">0</b> ฿</span>
                 <span>OT: <b id="totalOtIncome">0</b> ฿</span>
                 <span>หัก SSO (5%): <b id="ssoDeductionDisplay" style="color: #FCA5A5;">0</b> ฿</span>
+            </div>
+
+            <div class="ot-summary-stats">
+                <div class="ot-stat-item">
+                    <div class="ot-stat-label">📅 ทำ OT</div>
+                    <div class="ot-stat-val"><span id="otDaysCount">0</span> วัน</div>
+                </div>
+                <div class="ot-stat-item">
+                    <div class="ot-stat-label">⏱️ รวมเวลา</div>
+                    <div class="ot-stat-val"><span id="otTotalHours">0</span> ชม.</div>
+                </div>
+                <div class="ot-stat-item">
+                    <div class="ot-stat-label">💵 ได้เงิน OT</div>
+                    <div class="ot-stat-val"><span id="otTotalMoney">0.00</span> ฿</div>
+                </div>
             </div>
         </div>
 
@@ -712,7 +759,7 @@
 
         const monthNames = [
             "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
-            "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."
+            "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พฤ.ย.", "ธ.ค."
         ];
 
         // ---------------- หมวดหมู่เดี่ยวแบบแยกย่อย ----------------
@@ -743,6 +790,11 @@
         document.getElementById('otDate').value = new Date().toISOString().substring(0, 10);
         document.getElementById('txDate').value = new Date().toISOString().substring(0, 10);
 
+        // ---------------- HELPER FOR DYNAMIC COLOR ----------------
+        function getCurrentTextColor() {
+            return currentTheme === 'dark' ? '#F8FAFC' : '#1F2937';
+        }
+
         // ---------------- NAVIGATION & THEME ----------------
         function switchMainTab(tabId, btn) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -772,6 +824,8 @@
                 icon.innerText = '🌙';
                 text.innerText = 'โหมดมืด';
             }
+            
+            // อัปเดตกราฟทั้งหมดเพื่อเปลี่ยนสีตัวอักษรตามธีมทันที
             if (incomeChart) updateIncomeChart();
             if (walletExpenseChartInstance || walletYearlyChartInstance) refreshWalletUI();
         }
@@ -872,8 +926,11 @@
 
             const uniqueWorkDays = new Set(filteredRecords.map(rec => rec.date)).size;
 
+            let totalOtHours = 0;
             let totalOtMoney = 0;
+
             filteredRecords.forEach(rec => {
+                totalOtHours += rec.hours;
                 totalOtMoney += rec.hours * baseRatePerHour * rec.rate;
             });
 
@@ -886,6 +943,10 @@
             document.getElementById('totalOtIncome').innerText = totalOtMoney.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             document.getElementById('ssoDeductionDisplay').innerText = ssoDeduction.toLocaleString('th-TH');
             document.getElementById('totalNetSalary').innerText = totalNet.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " ฿";
+
+            document.getElementById('otDaysCount').innerText = uniqueWorkDays;
+            document.getElementById('otTotalHours').innerText = totalOtHours.toLocaleString('th-TH');
+            document.getElementById('otTotalMoney').innerText = totalOtMoney.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
             renderHistory(filteredRecords, baseRatePerHour);
             updateIncomeChart();
@@ -1102,7 +1163,7 @@
             document.getElementById('yearlySsoTotal').innerText = yearSsoSum.toLocaleString('th-TH');
 
             const isDark = currentTheme === 'dark';
-            const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim() || (isDark ? '#F8FAFC' : '#1F2937');
+            const textColor = getCurrentTextColor();
             const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
 
             const ctx = document.getElementById('incomeChart').getContext('2d');
@@ -1421,7 +1482,7 @@
             document.getElementById('walletYearlySavings').innerText = yearSavingsSum.toLocaleString('th-TH');
 
             const isDark = currentTheme === 'dark';
-            const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim() || (isDark ? '#F8FAFC' : '#1F2937');
+            const textColor = getCurrentTextColor();
             const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
 
             const ctx = document.getElementById('walletYearlyChart').getContext('2d');
@@ -1485,7 +1546,7 @@
             });
         }
 
-        // ---------------- แสดงสัดส่วนเปอร์เซ็นต์ (%) ใน Doughnut Chart (แก้ไขธีมสี & เลเอาต์) ----------------
+        // แก้ไข dynamic color ของ Legend ข้อความให้เปลี่ยนสีตามธีมทันที
         function renderWalletChart(categoryExpenses) {
             const ctx = document.getElementById('walletExpenseChart').getContext('2d');
             const labels = Object.keys(categoryExpenses);
@@ -1498,9 +1559,7 @@
             if (labels.length === 0) return;
 
             const totalAmount = data.reduce((sum, val) => sum + val, 0);
-
-            // ดึงสีข้อความจาก CSS Variable ปัจจุบันโดยตรง (ขาวใน Dark Mode, ดำใน Light Mode)
-            const computedTextColor = getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim() || '#1F2937';
+            const activeTextColor = getCurrentTextColor();
 
             walletExpenseChartInstance = new Chart(ctx, {
                 type: 'doughnut',
@@ -1521,18 +1580,22 @@
                     maintainAspectRatio: false,
                     layout: {
                         padding: {
-                            bottom: 10
+                            bottom: 15,
+                            top: 10
                         }
                     },
                     plugins: {
                         legend: { 
                             position: 'bottom',
                             labels: { 
-                                color: computedTextColor, // กำหนดสีตัวหนังสือให้ตอบสนองตามโหมด
-                                padding: 12,
-                                font: { family: 'Kanit', size: 12 },
+                                color: activeTextColor,
+                                padding: 8,
+                                font: { family: 'Kanit', size: 10 },
+                                boxWidth: 12,
+                                boxHeight: 12,
                                 generateLabels: function(chart) {
                                     const data = chart.data;
+                                    const dynamicTextColor = getCurrentTextColor();
                                     if (data.labels.length && data.datasets.length) {
                                         return data.labels.map(function(label, i) {
                                             const meta = chart.getDatasetMeta(0);
@@ -1545,6 +1608,7 @@
                                                 fillStyle: style.backgroundColor,
                                                 strokeStyle: style.borderColor,
                                                 lineWidth: style.borderWidth,
+                                                fontColor: dynamicTextColor,
                                                 hidden: isNaN(data.datasets[0].data[i]) || meta.data[i].hidden,
                                                 index: i
                                             };
