@@ -1,0 +1,1720 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจัดการ OT รายได้ & รายรับ-รายจ่าย (Pro Analytics)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Tesseract.js สำหรับ OCR สแกนสลิป -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    <style>
+      :root {
+        --bg-color: #F3F4F6;
+        --card-bg: #FFFFFF;
+        --text-color: #1F2937;
+        --text-muted: #6B7280;
+        --border-color: #E5E7EB;
+        --primary: #4F46E5;
+        --primary-hover: #4338CA;
+        --success: #10B981;
+        --danger: #EF4444;
+        --accent: #3B82F6;
+        --input-bg: #FFFFFF;
+        --grid-line: rgba(0, 0, 0, 0.05);
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+      }
+
+      [data-theme="dark"] {
+        --bg-color: #0F172A;
+        --card-bg: #1E293B;
+        --text-color: #F8FAFC;
+        --text-muted: #94A3B8;
+        --border-color: #334155;
+        --primary: #6366F1;
+        --primary-hover: #4F46E5;
+        --success: #34D399;
+        --danger: #F87171;
+        --accent: #60A5FA;
+        --input-bg: #0F172A;
+        --grid-line: rgba(255, 255, 255, 0.1);
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: 'Kanit', sans-serif;
+        transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+      }
+
+      body {
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        padding: 12px;
+        max-width: 750px;
+        margin: 0 auto;
+        padding-bottom: 50px;
+      }
+
+      .header-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        padding: 4px 0;
+      }
+
+      .header-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+      }
+
+      .theme-toggle {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        color: var(--text-color);
+        padding: 8px 14px;
+        border-radius: 20px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: var(--shadow);
+        width: auto;
+      }
+
+      .main-tab-nav {
+        display: flex;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 4px;
+        margin-bottom: 16px;
+        box-shadow: var(--shadow);
+      }
+
+      .tab-btn {
+        flex: 1;
+        padding: 10px;
+        background: none;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-align: center;
+      }
+
+      .tab-btn.active {
+        background: var(--primary);
+        color: white;
+        font-weight: 600;
+      }
+
+      .tab-content {
+        display: none;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      .card {
+        background: var(--card-bg);
+        border-radius: 16px;
+        padding: 16px;
+        margin-bottom: 16px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border-color);
+      }
+
+      .card h3 {
+        margin-bottom: 12px;
+        font-size: 1.1rem;
+      }
+
+      .summary-box {
+        background: linear-gradient(135deg, #4F46E5, #3B82F6);
+        color: white;
+        padding: 20px;
+        border-radius: 16px;
+        margin-bottom: 16px;
+        box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+      }
+
+      .yearly-summary-box {
+        background: linear-gradient(135deg, #059669, #10B981);
+        color: white;
+        padding: 20px;
+        border-radius: 16px;
+        margin-bottom: 16px;
+        box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);
+      }
+
+      .wallet-summary-box {
+        background: linear-gradient(135deg, #0284C7, #2563EB);
+        color: white;
+        padding: 20px;
+        border-radius: 16px;
+        margin-bottom: 16px;
+        box-shadow: 0 10px 15px -3px rgba(2, 132, 199, 0.3);
+      }
+
+      .summary-box .main-val,
+      .yearly-summary-box .main-val,
+      .wallet-summary-box .main-val {
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin: 8px 0;
+      }
+
+      .summary-detail {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.85rem;
+        opacity: 0.95;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+        padding-top: 10px;
+        margin-top: 10px;
+      }
+
+      .yearly-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+        padding-top: 10px;
+        margin-top: 10px;
+        font-size: 0.8rem;
+        text-align: center;
+      }
+
+      .yearly-grid div div {
+        font-weight: 600;
+        font-size: 0.95rem;
+        margin-top: 2px;
+      }
+
+      .ot-summary-stats {
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 12px;
+        padding: 10px 8px;
+        margin-top: 14px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
+        text-align: center;
+        align-items: center;
+        backdrop-filter: blur(5px);
+      }
+
+      .ot-stat-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .ot-stat-label {
+        font-size: 0.75rem;
+        opacity: 0.9;
+        margin-bottom: 2px;
+        white-space: nowrap;
+      }
+
+      .ot-stat-val {
+        font-size: 1.05rem;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .chart-controls {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+      }
+
+      .chart-btn {
+        background: var(--bg-color);
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        white-space: nowrap;
+        width: auto;
+      }
+
+      .chart-btn.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+      }
+
+      .chart-container {
+        position: relative;
+        height: 260px;
+        width: 100%;
+      }
+
+      .chart-container-doughnut {
+        position: relative;
+        min-height: 580px;
+        width: 100%;
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .allowance-input-group {
+        display: flex;
+        gap: 4px;
+      }
+
+      .allowance-input-group input {
+        flex: 1;
+      }
+
+      .allowance-input-group select {
+        width: 95px;
+        font-size: 0.8rem;
+        padding: 8px 4px;
+      }
+
+      .form-group {
+        margin-bottom: 12px;
+      }
+
+      label {
+        display: block;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-bottom: 4px;
+      }
+
+      input,
+      select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--border-color);
+        background-color: var(--input-bg);
+        color: var(--text-color);
+        border-radius: 8px;
+        font-size: 0.95rem;
+        outline: none;
+      }
+
+      input:focus,
+      select:focus {
+        border-color: var(--primary);
+      }
+
+      button.btn-primary {
+        width: 100%;
+        padding: 12px;
+        background-color: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+      }
+
+      button.btn-scan {
+        background-color: var(--accent);
+        color: white;
+        border: none;
+        padding: 10px;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        margin-top: 6px;
+        width: 100%;
+      }
+
+      button.btn-cancel {
+        width: 100%;
+        padding: 8px;
+        background-color: transparent;
+        color: var(--text-muted);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        margin-top: 6px;
+      }
+
+      .history-list {
+        list-style: none;
+      }
+
+      .history-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .history-item:last-child {
+        border-bottom: none;
+      }
+
+      .history-info div:first-child {
+        font-weight: 500;
+      }
+
+      .history-info div:last-child {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+
+      .history-amount {
+        text-align: right;
+      }
+
+      .btn-edit {
+        background: none;
+        color: var(--accent);
+        border: none;
+        padding: 4px 6px;
+        font-size: 0.8rem;
+        width: auto;
+        cursor: pointer;
+      }
+
+      .btn-delete {
+        background: none;
+        color: var(--danger);
+        border: none;
+        padding: 4px 6px;
+        font-size: 0.8rem;
+        width: auto;
+        cursor: pointer;
+      }
+
+      .shift-badge {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        margin-left: 4px;
+      }
+
+      .shift-day {
+        background-color: #FEF3C7;
+        color: #D97706;
+      }
+
+      .shift-night {
+        background-color: #E0E7FF;
+        color: #4338CA;
+      }
+
+      .btn-export {
+        background: var(--bg-color);
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        margin-top: 10px;
+        width: 100%;
+      }
+
+      .btn-export:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+      }
+
+      #scanStatus {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-top: 6px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header-nav">
+      <div class="header-title">⏱️ OT Income & Smart Wallet</div>
+      <button class="theme-toggle" id="themeToggleBtn" onclick="toggleTheme()">
+        <span id="themeIcon">🌙</span>
+        <span id="themeText">โหมดมืด</span>
+      </button>
+    </div>
+    <!-- Main Navigation Tab -->
+    <div class="main-tab-nav">
+      <button class="tab-btn active" onclick="switchMainTab('otTab', this)">⏱️ บันทึก OT & รายได้</button>
+      <button class="tab-btn" onclick="switchMainTab('walletTab', this)">💰 รายรับ-รายจ่าย & สแกนสลิป</button>
+    </div>
+    <!-- ==================== TAB 1: บันทึก OT & สรุปรายได้ ==================== -->
+    <div id="otTab" class="tab-content active">
+      <!-- สรุปภาพรวมรายเดือน -->
+      <div class="summary-box">
+        <div>คาดการณ์รายรับสุทธิรายเดือน (หลังหัก SSO)</div>
+        <div class="main-val" id="totalNetSalary">0 ฿</div>
+        <div class="summary-detail">
+          <span>ฐาน + สวัสดิการ: <b id="totalBaseAndAllowance">0</b> ฿ </span>
+          <span>OT: <b id="totalOtIncome">0</b> ฿ </span>
+          <span>หัก SSO (5%): <b id="ssoDeductionDisplay" style="color: #FCA5A5;">0</b> ฿ </span>
+        </div>
+        <div class="ot-summary-stats">
+          <div class="ot-stat-item">
+            <div class="ot-stat-label">📅 ทำ OT</div>
+            <div class="ot-stat-val">
+              <span id="otDaysCount">0</span> วัน
+            </div>
+          </div>
+          <div class="ot-stat-item">
+            <div class="ot-stat-label">⏱️ รวมเวลา</div>
+            <div class="ot-stat-val">
+              <span id="otTotalHours">0</span> ชม.
+            </div>
+          </div>
+          <div class="ot-stat-item">
+            <div class="ot-stat-label">💵 ได้เงิน OT</div>
+            <div class="ot-stat-val">
+              <span id="otTotalMoney">0.00</span> ฿
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- สรุปภาพรวมรายปี -->
+      <div class="yearly-summary-box">
+        <div>💰 ยอดสรุปรายได้สะสมปี <span id="yearlyLabel">(ปี 2569)</span>
+        </div>
+        <div class="main-val" id="yearlyNetTotal">0 ฿</div>
+        <div style="font-size: 0.8rem; opacity: 0.9; margin-bottom: 6px;"> *คิดคำนวณเฉพาะ <b id="activeMonthsCount">0</b> เดือนที่มีการบันทึก OT </div>
+        <div class="yearly-grid">
+          <div>
+            <div>ฐาน+สวัสดิการรวม</div>
+            <span id="yearlyBaseTotal">0</span> ฿
+          </div>
+          <div>
+            <div>OT รวมสะสม</div>
+            <span id="yearlyOtTotal">0</span> ฿
+          </div>
+          <div>
+            <div>หัก SSO รวม</div>
+            <span id="yearlySsoTotal">0</span> ฿
+          </div>
+        </div>
+      </div>
+      <!-- กราฟวิเคราะห์รายได้ประจำปี -->
+      <div class="card">
+        <h3>📈 แดชบอร์ดสรุปรายได้ประจำปี</h3>
+        <div class="form-group" style="margin-bottom: 8px;">
+          <label>เลือกปีวิเคราะห์</label>
+          <select id="chartYearSelect" onchange="updateIncomeChart()"></select>
+        </div>
+        <div class="chart-controls">
+          <button class="chart-btn active" onclick="switchChartType('line', this)">📈 กราฟเส้น (Line)</button>
+          <button class="chart-btn" onclick="switchChartType('bar', this)">📊 กราฟแท่ง (Bar)</button>
+          <button class="chart-btn" onclick="switchChartType('area', this)">🌊 พื้นที่สะสม (Area)</button>
+          <button class="chart-btn" onclick="switchChartType('radar', this)">🕸️ เรดาร์เปรียบเทียบ</button>
+        </div>
+        <div class="chart-container">
+          <canvas id="incomeChart"></canvas>
+        </div>
+      </div>
+      <!-- ตั้งค่าเงินเดือน & สวัสดิการ -->
+      <div class="card">
+        <h3>⚙️ ตั้งค่าเงินเดือน & สวัสดิการประจำ</h3>
+        <div class="form-group">
+          <label>เงินเดือนพื้นฐาน (บาท)</label>
+          <input type="number" id="baseSalary" value="15000" onchange="saveProfile()">
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>ค่าบ้าน</label>
+            <div class="allowance-input-group">
+              <input type="number" id="housingAllowance" value="0" onchange="saveProfile()">
+              <select id="housingType" onchange="saveProfile()">
+                <option value="month">บาท/เดือน</option>
+                <option value="day">บาท/วัน</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>ค่าเดินทาง/ค่ารถ</label>
+            <div class="allowance-input-group">
+              <input type="number" id="transportAllowance" value="0" onchange="saveProfile()">
+              <select id="transportType" onchange="saveProfile()">
+                <option value="month">บาท/เดือน</option>
+                <option value="day">บาท/วัน</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>ค่าอาหาร</label>
+            <div class="allowance-input-group">
+              <input type="number" id="foodAllowance" value="0" onchange="saveProfile()">
+              <select id="foodType" onchange="saveProfile()">
+                <option value="month">บาท/เดือน</option>
+                <option value="day">บาท/วัน</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>เบี้ยขยัน</label>
+            <div class="allowance-input-group">
+              <input type="number" id="diligenceAllowance" value="0" onchange="saveProfile()">
+              <select id="diligenceType" onchange="saveProfile()">
+                <option value="month">บาท/เดือน</option>
+                <option value="day">บาท/วัน</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>ค่ากะ</label>
+            <div class="allowance-input-group">
+              <input type="number" id="shiftAllowance" value="0" onchange="saveProfile()">
+              <select id="shiftType" onchange="saveProfile()">
+                <option value="day">บาท/วัน</option>
+                <option value="month">บาท/เดือน</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>สวัสดิการอื่นๆ</label>
+            <div class="allowance-input-group">
+              <input type="number" id="otherAllowance" value="0" onchange="saveProfile()">
+              <select id="otherType" onchange="saveProfile()">
+                <option value="month">บาท/เดือน</option>
+                <option value="day">บาท/วัน</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div style="font-size: 0.8rem; color: var(--text-muted); text-align: right; margin-top: 4px;"> อัตรา OT ปกติ (1.5x): <span id="hourlyRateText">0</span> บาท/ชม. </div>
+      </div>
+      <!-- ฟอร์มบันทึก OT -->
+      <div class="card" id="otFormCard">
+        <h3 id="formTitle">📝 บันทึกการทำงาน OT</h3>
+        <form id="otForm">
+          <input type="hidden" id="editRecordId" value="">
+          <div class="grid-2">
+            <div class="form-group">
+              <label>วันที่</label>
+              <input type="date" id="otDate" required>
+            </div>
+            <div class="form-group">
+              <label>กะการทำงาน</label>
+              <select id="workShift">
+                <option value="day">☀️ กะกลางวัน</option>
+                <option value="night">🌙 กะกลางคืน</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label>จำนวน (ชั่วโมง)</label>
+              <input type="number" id="otHours" step="0.5" min="0.5" placeholder="เช่น 2.5" required>
+            </div>
+            <div class="form-group">
+              <label>อัตราคูณ (เท่า)</label>
+              <select id="otRate">
+                <option value="1.5">1.5 เท่า (วันทำงานปกติ)</option>
+                <option value="2.0">2.0 เท่า (ทำงานในวันหยุด)</option>
+                <option value="3.0">3.0 เท่า (OT วันหยุด)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>หมายเหตุ (ถ้ามี)</label>
+            <input type="text" id="otNote" placeholder="เช่น งานด่วน, สายผลิต B">
+          </div>
+          <button type="submit" class="btn-primary" id="submitBtn">บันทึกข้อมูล OT</button>
+          <button type="button" class="btn-cancel" id="cancelBtn" style="display: none;" onclick="resetForm()">ยกเลิกการแก้ไข</button>
+        </form>
+      </div>
+      <!-- รายการบันทึก & สรุป -->
+      <div class="card">
+        <h3>📊 ประวัติการทำ OT</h3>
+        <div class="grid-2" style="margin-bottom: 12px;">
+          <div class="form-group">
+            <label>เลือกเดือน</label>
+            <select id="filterMonth" onchange="calculateAll()"></select>
+          </div>
+          <div class="form-group">
+            <label>เลือกปี</label>
+            <select id="filterYear" onchange="calculateAll()"></select>
+          </div>
+        </div>
+        <ul class="history-list" id="historyList"></ul>
+        <div class="grid-2" style="gap: 8px;">
+          <button class="btn-export" onclick="exportMonthlyCSV()">📥 ดาวน์โหลด CSV (เดือนนี้)</button>
+          <button class="btn-export" onclick="exportAllCSV()">📦 ดาวน์โหลด CSV (ทั้งหมด)</button>
+        </div>
+      </div>
+    </div>
+    <!-- ==================== TAB 2: รายรับ-รายจ่าย & สแกนสลิป ==================== -->
+    <div id="walletTab" class="tab-content">
+      <!-- การ์ดสรุปยอดรายรับ-รายจ่าย ประจำเดือน -->
+      <div class="wallet-summary-box">
+        <div>ยอดคงเหลือสุทธิ (เดือนนี้)</div>
+        <div class="main-val" id="walletBalanceTotal">0.00 ฿</div>
+        <div class="summary-detail">
+          <span>รายรับ: <b id="walletIncomeTotal" style="color: #6EE7B7;">0.00</b> ฿ </span>
+          <span>รายจ่าย: <b id="walletExpenseTotal" style="color: #FCA5A5;">0.00</b> ฿ </span>
+          <span>ออม/ลงทุน/หุ้น: <b id="walletSavingsTotal" style="color: #93C5FD;">0.00</b> ฿ </span>
+        </div>
+      </div>
+      <!-- การ์ดสรุปภาพรวมรายรับ-รายจ่าย ประจำปี -->
+      <div class="yearly-summary-box" style="background: linear-gradient(135deg, #0284C7, #0D9488);">
+        <div>📊 สรุปภาพรวมทางการเงินสะสมปี <span id="walletYearlyLabel">(ปี 2569)</span>
+        </div>
+        <div class="main-val" id="walletYearlyNet">0.00 ฿</div>
+        <div class="yearly-grid">
+          <div>
+            <div>รายรับสะสมรวม</div>
+            <span id="walletYearlyIncome">0</span> ฿
+          </div>
+          <div>
+            <div>รายจ่ายสะสมรวม</div>
+            <span id="walletYearlyExpense">0</span> ฿
+          </div>
+          <div>
+            <div>ออม/ลงทุนรวม</div>
+            <span id="walletYearlySavings">0</span> ฿
+          </div>
+        </div>
+      </div>
+      <!-- สแกนสลิปด้วย OCR -->
+      <div class="card">
+        <h3>📷 สแกนสลิปโอนเงิน (ดึงข้อมูลอัตโนมัติ)</h3>
+        <div class="form-group">
+          <input type="file" id="slipInput" accept="image/*">
+          <button type="button" class="btn-scan" onclick="processSlip()">🔍 สแกนอ่านข้อมูลจากสลิป</button>
+          <div id="scanStatus"></div>
+        </div>
+      </div>
+      <!-- ฟอร์มกรอก รายรับ-รายจ่าย (แยกเมนูเดี่ยว) -->
+      <div class="card">
+        <h3>📝 บันทึกรายการเงินเข้า-ออก</h3>
+        <form id="walletForm" onsubmit="saveTransaction(event)">
+          <div class="grid-2">
+            <div class="form-group">
+              <label>ประเภทธุรกรรม</label>
+              <select id="txType" onchange="updateWalletCategories()">
+                <option value="expense">🔻 รายจ่าย / การลงทุน</option>
+                <option value="income">🟢 รายรับ</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>หมวดหมู่</label>
+              <select id="txCategory"></select>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label>จำนวนเงิน (บาท)</label>
+              <input type="number" step="0.01" id="txAmount" placeholder="0.00" required>
+            </div>
+            <div class="form-group">
+              <label>วันที่รายการ</label>
+              <input type="date" id="txDate" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>บันทึกเพิ่มเติม / หมายเหตุ</label>
+            <input type="text" id="txNote" placeholder="เช่น งวดรถ Zontes, ค่าเน็ต, ซื้อหุ้น QQQM">
+          </div>
+          <button type="submit" class="btn-primary">บันทึกรายการ</button>
+        </form>
+      </div>
+      <!-- กราฟวิเคราะห์รายรับ-รายจ่าย ประจำปี -->
+      <div class="card">
+        <h3>📈 แดชบอร์ดสรุปรายรับ-รายจ่าย ประจำปี</h3>
+        <div class="form-group" style="margin-bottom: 8px;">
+          <label>เลือกปีวิเคราะห์</label>
+          <select id="walletChartYearSelect" onchange="refreshWalletUI()"></select>
+        </div>
+        <div class="chart-container">
+          <canvas id="walletYearlyChart"></canvas>
+        </div>
+      </div>
+      <!-- กราฟวงกลมแสดงสัดส่วนรายจ่ายประจำเดือน พร้อมเปอร์เซ็นต์ -->
+      <div class="card">
+        <h3>🍩 สัดส่วนค่าใช้จ่าย & การออม % (ประจำเดือน)</h3>
+        <div class="chart-container-doughnut">
+          <canvas id="walletExpenseChart"></canvas>
+        </div>
+      </div>
+      <!-- ประวัติรายการรายรับ-รายจ่าย -->
+      <div class="card">
+        <h3>📜 ประวัติรายการเงินเข้า-ออก</h3>
+        <ul class="history-list" id="walletHistoryList"></ul>
+      </div>
+    </div>
+    <script>
+      // ---------------- STATE VARIABLES ----------------
+      let profile = JSON.parse(localStorage.getItem('ot_profile')) || {
+        baseSalary: 15000,
+        housing: 0,
+        housingType: 'month',
+        transport: 0,
+        transportType: 'month',
+        food: 0,
+        foodType: 'month',
+        diligence: 0,
+        diligenceType: 'month',
+        shift: 0,
+        shiftType: 'day',
+        other: 0,
+        otherType: 'month'
+      };
+      let otRecords = JSON.parse(localStorage.getItem('ot_records')) || [];
+      let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+      let currentTheme = localStorage.getItem('ot_theme') || 'light';
+      let currentChartStyle = 'line';
+      let incomeChart = null;
+      let walletExpenseChartInstance = null;
+      let walletYearlyChartInstance = null;
+      const monthNames = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พฤ.ย.", "ธ.ค."];
+      // ---------------- หมวดหมู่เดี่ยวแบบแยกย่อย ----------------
+      const defaultCategories = {
+        expense: ["🍱 ค่าอาหาร", "☕ เครื่องดื่ม", "🚗 ค่าน้ำมัน / ค่าเดินทาง", "🏎️ ค่าผ่อนรถ", "📱 ค่าผ่อนโทรศัพท์", "🏠 ค่าห้อง / บ้าน / ค่าน้ำ-ค่าไฟ", "📶 อินเทอร์เน็ต / ค่าโทรศัพท์", "📈 ซื้อหุ้น / การลงทุน", "🛍️ ช้อปปิ้ง / ของใช้ส่วนตัว", "🛡️ ค่าประกัน", "💰 เงินออม", "📦 อื่นๆ"],
+        income: ["💼 เงินเดือน / ค่าจ้าง", "⏱️ รายได้ OT", "📱 ขายของ / รายได้เสริม", "📈 ดอกเบี้ย / เงินปันผล / กำไรหุ้น", "📥 อื่นๆ"]
+      };
+      document.getElementById('otDate').value = new Date().toISOString().substring(0, 10);
+      document.getElementById('txDate').value = new Date().toISOString().substring(0, 10);
+      // ---------------- HELPER FOR DYNAMIC COLOR ----------------
+      function getCurrentTextColor() {
+        return currentTheme === 'dark' ? '#F8FAFC' : '#1F2937';
+      }
+      // ---------------- NAVIGATION & THEME ----------------
+      function switchMainTab(tabId, btn) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        btn.classList.add('active');
+        if (tabId === 'walletTab') {
+          refreshWalletUI();
+        } else {
+          calculateAll();
+        }
+      }
+      applyTheme(currentTheme);
+
+      function applyTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('ot_theme', theme);
+        const icon = document.getElementById('themeIcon');
+        const text = document.getElementById('themeText');
+        if (theme === 'dark') {
+          icon.innerText = '☀️';
+          text.innerText = 'โหมดสว่าง';
+        } else {
+          icon.innerText = '🌙';
+          text.innerText = 'โหมดมืด';
+        }
+        // อัปเดตกราฟทั้งหมดเพื่อเปลี่ยนสีตัวอักษรตามธีมทันที
+        if (incomeChart) updateIncomeChart();
+        if (walletExpenseChartInstance || walletYearlyChartInstance) refreshWalletUI();
+      }
+
+      function toggleTheme() {
+        currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+        applyTheme(currentTheme);
+      }
+      // ---------------- INIT ----------------
+      initFilters();
+      loadProfileUI();
+      updateWalletCategories();
+      calculateAll();
+      // ---------------- OT & PROFILE LOGIC ----------------
+      function loadProfileUI() {
+        document.getElementById('baseSalary').value = profile.baseSalary || 15000;
+        document.getElementById('housingAllowance').value = profile.housing || 0;
+        document.getElementById('housingType').value = profile.housingType || 'month';
+        document.getElementById('transportAllowance').value = profile.transport || 0;
+        document.getElementById('transportType').value = profile.transportType || 'month';
+        document.getElementById('foodAllowance').value = profile.food || 0;
+        document.getElementById('foodType').value = profile.foodType || 'month';
+        document.getElementById('diligenceAllowance').value = profile.diligence || 0;
+        document.getElementById('diligenceType').value = profile.diligenceType || 'month';
+        document.getElementById('shiftAllowance').value = profile.shift || 0;
+        document.getElementById('shiftType').value = profile.shiftType || 'day';
+        document.getElementById('otherAllowance').value = profile.other || 0;
+        document.getElementById('otherType').value = profile.otherType || 'month';
+      }
+
+      function saveProfile() {
+        profile = {
+          baseSalary: parseFloat(document.getElementById('baseSalary').value) || 0,
+          housing: parseFloat(document.getElementById('housingAllowance').value) || 0,
+          housingType: document.getElementById('housingType').value,
+          transport: parseFloat(document.getElementById('transportAllowance').value) || 0,
+          transportType: document.getElementById('transportType').value,
+          food: parseFloat(document.getElementById('foodAllowance').value) || 0,
+          foodType: document.getElementById('foodType').value,
+          diligence: parseFloat(document.getElementById('diligenceAllowance').value) || 0,
+          diligenceType: document.getElementById('diligenceType').value,
+          shift: parseFloat(document.getElementById('shiftAllowance').value) || 0,
+          shiftType: document.getElementById('shiftType').value,
+          other: parseFloat(document.getElementById('otherAllowance').value) || 0,
+          otherType: document.getElementById('otherType').value
+        };
+        localStorage.setItem('ot_profile', JSON.stringify(profile));
+        calculateAll();
+      }
+
+      function calculateMonthlyAllowances(workDaysCount) {
+        let total = 0;
+        const items = [{
+          val: profile.housing,
+          type: profile.housingType
+        }, {
+          val: profile.transport,
+          type: profile.transportType
+        }, {
+          val: profile.food,
+          type: profile.foodType
+        }, {
+          val: profile.diligence,
+          type: profile.diligenceType
+        }, {
+          val: profile.shift,
+          type: profile.shiftType
+        }, {
+          val: profile.other,
+          type: profile.otherType
+        }];
+        items.forEach(item => {
+          if (item.type === 'day') {
+            total += (item.val || 0) * workDaysCount;
+          } else {
+            total += (item.val || 0);
+          }
+        });
+        return total;
+      }
+
+      function calculateSSO(salary) {
+        if (!salary || salary <= 0) return 0;
+        const cappedSalary = Math.min(salary, 17500);
+        return Math.round(cappedSalary * 0.05);
+      }
+
+      function calculateAll() {
+        const baseRatePerHour = (profile.baseSalary / 30) / 8;
+        document.getElementById('hourlyRateText').innerText = (baseRatePerHour * 1.5).toFixed(2);
+        const selectedMonth = parseInt(document.getElementById('filterMonth').value);
+        const selectedYear = parseInt(document.getElementById('filterYear').value);
+        const filteredRecords = otRecords.filter(rec => {
+          const d = new Date(rec.date);
+          return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+        });
+        const uniqueWorkDays = new Set(filteredRecords.map(rec => rec.date)).size;
+        let totalOtHours = 0;
+        let totalOtMoney = 0;
+        filteredRecords.forEach(rec => {
+          totalOtHours += rec.hours;
+          totalOtMoney += rec.hours * baseRatePerHour * rec.rate;
+        });
+        const totalAllowances = calculateMonthlyAllowances(uniqueWorkDays);
+        const totalBaseAndAllow = profile.baseSalary + totalAllowances;
+        const ssoDeduction = calculateSSO(profile.baseSalary);
+        const totalNet = (totalBaseAndAllow + totalOtMoney) - ssoDeduction;
+        document.getElementById('totalBaseAndAllowance').innerText = totalBaseAndAllow.toLocaleString('th-TH');
+        document.getElementById('totalOtIncome').innerText = totalOtMoney.toLocaleString('th-TH', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+        document.getElementById('ssoDeductionDisplay').innerText = ssoDeduction.toLocaleString('th-TH');
+        document.getElementById('totalNetSalary').innerText = totalNet.toLocaleString('th-TH', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }) + " ฿";
+        document.getElementById('otDaysCount').innerText = uniqueWorkDays;
+        document.getElementById('otTotalHours').innerText = totalOtHours.toLocaleString('th-TH');
+        document.getElementById('otTotalMoney').innerText = totalOtMoney.toLocaleString('th-TH', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+        renderHistory(filteredRecords, baseRatePerHour);
+        updateIncomeChart();
+      }
+      document.getElementById('otForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const editId = document.getElementById('editRecordId').value;
+        const recordData = {
+          date: document.getElementById('otDate').value,
+          shift: document.getElementById('workShift').value,
+          hours: parseFloat(document.getElementById('otHours').value),
+          rate: parseFloat(document.getElementById('otRate').value),
+          note: document.getElementById('otNote').value
+        };
+        if (editId) {
+          const index = otRecords.findIndex(r => r.id === parseInt(editId));
+          if (index !== -1) {
+            otRecords[index] = {
+              ...otRecords[index],
+              ...recordData
+            };
+          }
+        } else {
+          const newRecord = {
+            id: Date.now(),
+            ...recordData
+          };
+          otRecords.push(newRecord);
+        }
+        localStorage.setItem('ot_records', JSON.stringify(otRecords));
+        resetForm();
+        calculateAll();
+      });
+
+      function editRecord(id) {
+        const target = otRecords.find(r => r.id === id);
+        if (!target) return;
+        document.getElementById('editRecordId').value = target.id;
+        document.getElementById('otDate').value = target.date;
+        document.getElementById('workShift').value = target.shift;
+        document.getElementById('otHours').value = target.hours;
+        document.getElementById('otRate').value = target.rate;
+        document.getElementById('otNote').value = target.note || '';
+        document.getElementById('formTitle').innerText = '✏️ แก้ไขข้อมูล OT';
+        document.getElementById('submitBtn').innerText = 'อัปเดตข้อมูล OT';
+        document.getElementById('cancelBtn').style.display = 'block';
+        document.getElementById('otFormCard').scrollIntoView({
+          behavior: 'smooth'
+        });
+      }
+
+      function resetForm() {
+        document.getElementById('editRecordId').value = '';
+        document.getElementById('otHours').value = '';
+        document.getElementById('otNote').value = '';
+        document.getElementById('otDate').value = new Date().toISOString().substring(0, 10);
+        document.getElementById('formTitle').innerText = '📝 บันทึกการทำงาน OT';
+        document.getElementById('submitBtn').innerText = 'บันทึกข้อมูล OT';
+        document.getElementById('cancelBtn').style.display = 'none';
+      }
+
+      function deleteRecord(id) {
+        if (confirm('คุณต้องการลบรายการนี้ใช่หรือไม่?')) {
+          if (document.getElementById('editRecordId').value == id) {
+            resetForm();
+          }
+          otRecords = otRecords.filter(rec => rec.id !== id);
+          localStorage.setItem('ot_records', JSON.stringify(otRecords));
+          calculateAll();
+        }
+      }
+
+      function renderHistory(recordsToShow, baseRatePerHour) {
+        recordsToShow.sort((a, b) => new Date(b.date) - new Date(a.date));
+        const listEl = document.getElementById('historyList');
+        listEl.innerHTML = '';
+        if (recordsToShow.length === 0) {
+          listEl.innerHTML = ' < li style = "text-align:center; color: var(--text-muted); padding: 12px;" > ไม่ มีรายการ OT ในเดือนนี้ < /li>';
+          return;
+        }
+        recordsToShow.forEach(rec => {
+          const amount = rec.hours * baseRatePerHour * rec.rate;
+          const dateObj = new Date(rec.date);
+          const dateFormatted = dateObj.toLocaleDateString('th-TH', {
+            day: 'numeric',
+            month: 'short',
+            year: '2-digit'
+          });
+          const shiftTag = rec.shift === 'night' ? ' < span class = "shift-badge shift-night" > 🌙กะดึก < /span>'  : ' < span class = "shift-badge shift-day" > ☀️กะวั น < /span>';
+          const li = document.createElement('li');
+          li.className = 'history-item';
+          li.innerHTML = `
+                    
+																					<div class="history-info">
+																						<div>
+                            ${dateFormatted} ${shiftTag}
+                            ${rec.note ? `
+																							<span style="font-size:0.8rem; font-weight:normal; color:var(--text-muted);">(${rec.note})</span>` : ''}
+                        
+																						</div>
+																						<div>${rec.hours} ชม. (คูณ ${rec.rate}x)</div>
+																					</div>
+																					<div class="history-amount">
+																						<div style="font-weight: 500; color: var(--success);">+${amount.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ฿</div>
+																						<div>
+																							<button class="btn-edit" onclick="editRecord(${rec.id})">แก้ไข</button>
+																							<button class="btn-delete" onclick="deleteRecord(${rec.id})">ลบ</button>
+																						</div>
+																					</div>
+                `;
+          listEl.appendChild(li);
+        });
+      }
+
+      function initFilters() {
+        const monthSelect = document.getElementById('filterMonth');
+        const yearSelect = document.getElementById('filterYear');
+        const chartYearSelect = document.getElementById('chartYearSelect');
+        const walletChartYearSelect = document.getElementById('walletChartYearSelect');
+        const now = new Date();
+        const fullMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+        fullMonths.forEach((m, idx) => {
+          const opt = document.createElement('option');
+          opt.value = idx;
+          opt.innerText = m;
+          if (idx === now.getMonth()) opt.selected = true;
+          monthSelect.appendChild(opt);
+        });
+        const currentYear = now.getFullYear();
+        for (let y = currentYear - 2; y <= currentYear + 1; y++) {
+          const opt1 = document.createElement('option');
+          opt1.value = y;
+          opt1.innerText = y + 543;
+          if (y === currentYear) opt1.selected = true;
+          yearSelect.appendChild(opt1);
+          const opt2 = document.createElement('option');
+          opt2.value = y;
+          opt2.innerText = y + 543;
+          if (y === currentYear) opt2.selected = true;
+          chartYearSelect.appendChild(opt2);
+          const opt3 = document.createElement('option');
+          opt3.value = y;
+          opt3.innerText = y + 543;
+          if (y === currentYear) opt3.selected = true;
+          walletChartYearSelect.appendChild(opt3);
+        }
+      }
+
+      function switchChartType(type, btnEl) {
+        currentChartStyle = type;
+        document.querySelectorAll('.chart-btn').forEach(b => b.classList.remove('active'));
+        btnEl.classList.add('active');
+        updateIncomeChart();
+      }
+
+      function updateIncomeChart() {
+        const year = parseInt(document.getElementById('chartYearSelect').value);
+        document.getElementById('yearlyLabel').innerText = `(ปี ${year + 543})`;
+        const baseRatePerHour = (profile.baseSalary / 30) / 8;
+        const ssoDeduction = calculateSSO(profile.baseSalary);
+        let otMonthlyData = new Array(12).fill(0);
+        let totalMonthlyData = new Array(12).fill(0);
+        let yearBaseAndAllowSum = 0;
+        let yearOtSum = 0;
+        let yearSsoSum = 0;
+        let yearNetSum = 0;
+        let activeMonths = 0;
+        for (let m = 0; m < 12; m++) {
+          const monthRecords = otRecords.filter(rec => {
+            const d = new Date(rec.date);
+            return d.getFullYear() === year && d.getMonth() === m;
+          });
+          if (monthRecords.length > 0) {
+            activeMonths++;
+            const workDaysCount = new Set(monthRecords.map(r => r.date)).size;
+            monthRecords.forEach(rec => {
+              otMonthlyData[m] += rec.hours * baseRatePerHour * rec.rate;
+            });
+            const monthlyAllowances = calculateMonthlyAllowances(workDaysCount);
+            const baseAndAllow = profile.baseSalary + monthlyAllowances;
+            totalMonthlyData[m] = (baseAndAllow + otMonthlyData[m]) - ssoDeduction;
+            yearBaseAndAllowSum += baseAndAllow;
+            yearOtSum += otMonthlyData[m];
+            yearSsoSum += ssoDeduction;
+            yearNetSum += totalMonthlyData[m];
+          } else {
+            otMonthlyData[m] = 0;
+            totalMonthlyData[m] = 0;
+          }
+        }
+        document.getElementById('activeMonthsCount').innerText = activeMonths;
+        document.getElementById('yearlyNetTotal').innerText = yearNetSum.toLocaleString('th-TH', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }) + " ฿";
+        document.getElementById('yearlyBaseTotal').innerText = yearBaseAndAllowSum.toLocaleString('th-TH');
+        document.getElementById('yearlyOtTotal').innerText = yearOtSum.toLocaleString('th-TH', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+        document.getElementById('yearlySsoTotal').innerText = yearSsoSum.toLocaleString('th-TH');
+        const isDark = currentTheme === 'dark';
+        const textColor = getCurrentTextColor();
+        const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
+        const ctx = document.getElementById('incomeChart').getContext('2d');
+        if (incomeChart) incomeChart.destroy();
+        let chartType = 'line';
+        let datasets = [];
+        if (currentChartStyle === 'line') {
+          chartType = 'line';
+          datasets = [{
+            label: 'รายได้สุทธิหลังหักประกันสังคม (บาท)',
+            data: totalMonthlyData,
+            borderColor: '#6366F1',
+            backgroundColor: 'transparent',
+            borderWidth: 3,
+            tension: 0.3,
+            pointRadius: 4,
+            pointBackgroundColor: '#6366F1'
+          }, {
+            label: 'รายได้เฉพาะ OT (บาท)',
+            data: otMonthlyData,
+            borderColor: '#10B981',
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            tension: 0.3
+          }];
+        } else if (currentChartStyle === 'bar') {
+          chartType = 'bar';
+          const baseAndAllowData = totalMonthlyData.map((tot, idx) => tot > 0 ? tot - otMonthlyData[idx] : 0);
+          datasets = [{
+            label: 'ฐานเงินเดือน + สวัสดิการ (หลังหัก SSO)',
+            data: baseAndAllowData,
+            backgroundColor: '#3B82F6',
+            borderRadius: 4
+          }, {
+            label: 'เงิน OT',
+            data: otMonthlyData,
+            backgroundColor: '#10B981',
+            borderRadius: 4
+          }];
+        } else if (currentChartStyle === 'area') {
+          chartType = 'line';
+          datasets = [{
+            label: 'รายได้สุทธิสะสม',
+            data: totalMonthlyData,
+            borderColor: '#4F46E5',
+            backgroundColor: isDark ? 'rgba(99, 102, 241, 0.3)' : 'rgba(79, 70, 229, 0.15)',
+            fill: true,
+            tension: 0.4
+          }];
+        } else if (currentChartStyle === 'radar') {
+          chartType = 'radar';
+          datasets = [{
+            label: 'รายได้สุทธิ (บาท)',
+            data: totalMonthlyData,
+            borderColor: '#10B981',
+            backgroundColor: 'rgba(16, 185, 129, 0.2)',
+            borderWidth: 2
+          }];
+        }
+        const chartConfig = {
+          type: chartType,
+          data: {
+            labels: monthNames,
+            datasets: datasets
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                labels: {
+                  color: textColor,
+                  font: {
+                    family: 'Kanit'
+                  }
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return context.dataset.label + ': ' + context.raw.toLocaleString('th-TH', {
+                      maximumFractionDigits: 0
+                    }) + ' ฿';
+                  }
+                }
+              }
+            },
+            scales: chartType !== 'radar' ? {
+              x: {
+                stacked: currentChartStyle === 'bar',
+                ticks: {
+                  color: textColor,
+                  font: {
+                    family: 'Kanit'
+                  }
+                },
+                grid: {
+                  color: gridColor
+                }
+              },
+              y: {
+                stacked: currentChartStyle === 'bar',
+                ticks: {
+                  color: textColor,
+                  font: {
+                    family: 'Kanit'
+                  },
+                  callback: function(value) {
+                    return value.toLocaleString('th-TH');
+                  }
+                },
+                grid: {
+                  color: gridColor
+                }
+              }
+            } : {
+              r: {
+                angleLines: {
+                  color: gridColor
+                },
+                grid: {
+                  color: gridColor
+                },
+                pointLabels: {
+                  color: textColor,
+                  font: {
+                    family: 'Kanit'
+                  }
+                },
+                ticks: {
+                  display: false
+                }
+              }
+            }
+          }
+        };
+        incomeChart = new Chart(ctx, chartConfig);
+      }
+      // ---------------- SMART WALLET LOGIC ----------------
+      function updateWalletCategories() {
+        const type = document.getElementById('txType').value;
+        const categorySelect = document.getElementById('txCategory');
+        categorySelect.innerHTML = '';
+        defaultCategories[type].forEach(cat => {
+          const option = document.createElement('option');
+          option.value = cat;
+          option.textContent = cat;
+          categorySelect.appendChild(option);
+        });
+      }
+      async function processSlip() {
+        const fileInput = document.getElementById('slipInput');
+        const status = document.getElementById('scanStatus');
+        if (!fileInput.files || fileInput.files.length === 0) {
+          alert('กรุณาเลือกรูปภาพสลิปก่อนครับ');
+          return;
+        }
+        status.textContent = '⏳ กำลังสแกนอ่านข้อมูลจากสลิป...';
+        const image = fileInput.files[0];
+        try {
+          const worker = await Tesseract.createWorker('tha+eng');
+          const ret = await worker.recognize(image);
+          const text = ret.data.text;
+          await worker.terminate();
+          status.textContent = '✅ อ่านข้อมูลสำเร็จ!';
+          parseSlipData(text);
+        } catch (err) {
+          console.error(err);
+          status.textContent = '❌ เกิดข้อผิดพลาดในการอ่านสลิป';
+        }
+      }
+
+      function parseSlipData(text) {
+        const amountMatch = text.match(/(?:จำนวนเงิน|จำนวน|จำนวนเงินสุทธิ|Amount)?\s*:?\s*([\d,]+\.\d{2})/i) || text.match(/([\d,]+\.\d{2})\s*(?:บาท|THB)/i);
+        if (amountMatch) {
+          const cleanAmount = amountMatch[1].replace(/,/g, '');
+          document.getElementById('txAmount').value = parseFloat(cleanAmount);
+          document.getElementById('txType').value = 'expense';
+          updateWalletCategories();
+        } else {
+          alert('อ่านจำนวนเงินไม่ชัดเจน กรุณากรอกจำนวนเงินด้วยตนเอง');
+        }
+        const upperText = text.toUpperCase();
+        if (upperText.includes('LEASING') || upperText.includes('HONDA') || upperText.includes('YAMAHA') || upperText.includes('ZONTES') || text.includes('งวด') || text.includes('ค่างวด') || text.includes('ไฟแนนซ์')) {
+          document.getElementById('txCategory').value = '🏎️ ค่าผ่อนรถ';
+        } else if (upperText.includes('APPLE') || upperText.includes('SAMSUNG') || upperText.includes('BANANA') || upperText.includes('JAYMART') || text.includes('ไอโฟน') || text.includes('มือถือ') || text.includes('โทรศัพท์')) {
+          document.getElementById('txCategory').value = '📱 ค่าผ่อนโทรศัพท์';
+        } else if (upperText.includes('PTT') || upperText.includes('BANGCHAK') || upperText.includes('OR') || text.includes('น้ำมัน')) {
+          document.getElementById('txCategory').value = '🚗 ค่าน้ำมัน / ค่าเดินทาง';
+        } else if (upperText.includes('CAFÉ') || upperText.includes('AMAZON') || upperText.includes('STARBUCKS') || text.includes('กาแฟ') || text.includes('ชา')) {
+          document.getElementById('txCategory').value = '☕ เครื่องดื่ม';
+        } else if (upperText.includes('7-ELEVEN') || upperText.includes('FOOD') || text.includes('ร้านค้า') || text.includes('อาหาร')) {
+          document.getElementById('txCategory').value = '🍱 ค่าอาหาร';
+        } else if (upperText.includes('AIS') || upperText.includes('TRUE') || upperText.includes('3BB') || upperText.includes('NT')) {
+          document.getElementById('txCategory').value = '📶 อินเทอร์เน็ต / ค่าโทรศัพท์';
+        } else if (upperText.includes('INNOVESTX') || upperText.includes('DIME') || upperText.includes('WEBULL') || upperText.includes('STREAMING')) {
+          document.getElementById('txCategory').value = '📈 ซื้อหุ้น / การลงทุน';
+        }
+      }
+
+      function saveTransaction(e) {
+        e.preventDefault();
+        const type = document.getElementById('txType').value;
+        const category = document.getElementById('txCategory').value;
+        const amount = parseFloat(document.getElementById('txAmount').value);
+        const dateVal = document.getElementById('txDate').value;
+        const note = document.getElementById('txNote').value;
+        const dateObj = new Date(dateVal);
+        const data = {
+          id: Date.now(),
+          type,
+          category,
+          amount,
+          note,
+          date: dateVal,
+          timestamp: dateObj.toISOString(),
+          dateStr: dateObj.toLocaleDateString('th-TH', {
+            day: 'numeric',
+            month: 'short',
+            year: '2-digit'
+          })
+        };
+        transactions.unshift(data);
+        localStorage.setItem('transactions', JSON.stringify(transactions));
+        document.getElementById('walletForm').reset();
+        document.getElementById('txDate').value = new Date().toISOString().substring(0, 10);
+        document.getElementById('slipInput').value = '';
+        document.getElementById('scanStatus').textContent = '';
+        updateWalletCategories();
+        refreshWalletUI();
+      }
+
+      function deleteTransaction(id) {
+        if (confirm('ต้องการลบรายการนี้หรือไม่?')) {
+          transactions = transactions.filter(item => item.id !== id);
+          localStorage.setItem('transactions', JSON.stringify(transactions));
+          refreshWalletUI();
+        }
+      }
+
+      function isInvestOrSaving(category) {
+        if (!category) return false;
+        return category.includes("เงินออม") || category.includes("หุ้น") || category.includes("ลงทุน");
+      }
+
+      function refreshWalletUI() {
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+        const monthlyLogs = transactions.filter(item => {
+          const itemDate = new Date(item.date || item.timestamp || item.id);
+          return itemDate.getMonth() === currentMonth && itemDate.getFullYear() === currentYear;
+        });
+        let income = 0;
+        let expense = 0;
+        let savings = 0;
+        const categoryExpenses = {};
+        monthlyLogs.forEach(item => {
+          if (item.type === 'income') {
+            income += item.amount;
+          } else {
+            if (isInvestOrSaving(item.category)) {
+              savings += item.amount;
+            } else {
+              expense += item.amount;
+            }
+            const catName = item.category || 'อื่นๆ';
+            categoryExpenses[catName] = (categoryExpenses[catName] || 0) + item.amount;
+          }
+        });
+        document.getElementById('walletIncomeTotal').textContent = income.toLocaleString('th-TH', {
+          minimumFractionDigits: 2
+        });
+        document.getElementById('walletExpenseTotal').textContent = expense.toLocaleString('th-TH', {
+          minimumFractionDigits: 2
+        });
+        document.getElementById('walletSavingsTotal').textContent = savings.toLocaleString('th-TH', {
+          minimumFractionDigits: 2
+        });
+        document.getElementById('walletBalanceTotal').textContent = (income - (expense + savings)).toLocaleString('th-TH', {
+          minimumFractionDigits: 2
+        }) + " ฿";
+        renderWalletYearlyDashboard();
+        renderWalletHistory(transactions);
+        renderWalletChart(categoryExpenses);
+      }
+
+      function renderWalletYearlyDashboard() {
+        const selectedYear = parseInt(document.getElementById('walletChartYearSelect').value);
+        document.getElementById('walletYearlyLabel').innerText = `(ปี ${selectedYear + 543})`;
+        let monthlyIncomeData = new Array(12).fill(0);
+        let monthlyExpenseData = new Array(12).fill(0);
+        let monthlySavingsData = new Array(12).fill(0);
+        let yearIncomeSum = 0;
+        let yearExpenseSum = 0;
+        let yearSavingsSum = 0;
+        transactions.forEach(item => {
+          const itemDate = new Date(item.date || item.timestamp || item.id);
+          if (itemDate.getFullYear() === selectedYear) {
+            const m = itemDate.getMonth();
+            if (item.type === 'income') {
+              monthlyIncomeData[m] += item.amount;
+              yearIncomeSum += item.amount;
+            } else {
+              if (isInvestOrSaving(item.category)) {
+                monthlySavingsData[m] += item.amount;
+                yearSavingsSum += item.amount;
+              } else {
+                monthlyExpenseData[m] += item.amount;
+                yearExpenseSum += item.amount;
+              }
+            }
+          }
+        });
+        const netYearBalance = yearIncomeSum - (yearExpenseSum + yearSavingsSum);
+        document.getElementById('walletYearlyNet').innerText = netYearBalance.toLocaleString('th-TH', {
+          minimumFractionDigits: 2
+        }) + " ฿";
+        document.getElementById('walletYearlyIncome').innerText = yearIncomeSum.toLocaleString('th-TH');
+        document.getElementById('walletYearlyExpense').innerText = yearExpenseSum.toLocaleString('th-TH');
+        document.getElementById('walletYearlySavings').innerText = yearSavingsSum.toLocaleString('th-TH');
+        const isDark = currentTheme === 'dark';
+        const textColor = getCurrentTextColor();
+        const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
+        const ctx = document.getElementById('walletYearlyChart').getContext('2d');
+        if (walletYearlyChartInstance) walletYearlyChartInstance.destroy();
+        walletYearlyChartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: monthNames,
+            datasets: [{
+              label: 'รายรับ (บาท)',
+              data: monthlyIncomeData,
+              backgroundColor: '#10B981',
+              borderRadius: 4
+            }, {
+              label: 'รายจ่าย (บาท)',
+              data: monthlyExpenseData,
+              backgroundColor: '#EF4444',
+              borderRadius: 4
+            }, {
+              label: 'ออม & หุ้น/ลงทุน (บาท)',
+              data: monthlySavingsData,
+              backgroundColor: '#3B82F6',
+              borderRadius: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                labels: {
+                  color: textColor,
+                  font: {
+                    family: 'Kanit'
+                  }
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return context.dataset.label + ': ' + context.raw.toLocaleString('th-TH') + ' ฿';
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                ticks: {
+                  color: textColor,
+                  font: {
+                    family: 'Kanit'
+                  }
+                },
+                grid: {
+                  color: gridColor
+                }
+              },
+              y: {
+                ticks: {
+                  color: textColor,
+                  font: {
+                    family: 'Kanit'
+                  },
+                  callback: function(value) {
+                    return value.toLocaleString('th-TH');
+                  }
+                },
+                grid: {
+                  color: gridColor
+                }
+              }
+            }
+          }
+        });
+      }
+      // แก้ไข dynamic color ของ Legend ข้อความให้เปลี่ยนสีตามธีมทันที
+      function renderWalletChart(categoryExpenses) {
+        const ctx = document.getElementById('walletExpenseChart').getContext('2d');
+        const labels = Object.keys(categoryExpenses);
+        const data = Object.values(categoryExpenses);
+        if (walletExpenseChartInstance) {
+          walletExpenseChartInstance.destroy();
+        }
+        if (labels.length === 0) return;
+        const totalAmount = data.reduce((sum, val) => sum + val, 0);
+        const activeTextColor = getCurrentTextColor();
+        walletExpenseChartInstance = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: labels,
+            datasets: [{
+              data: data,
+              backgroundColor: ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#06B6D4', '#64748B', '#84CC16', '#6366F1'],
+              borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: {
+              padding: {
+                bottom: 15,
+                top: 10
+              }
+            },
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  color: activeTextColor,
+                  padding: 8,
+                  font: {
+                    family: 'Kanit',
+                    size: 10
+                  },
+                  boxWidth: 12,
+                  boxHeight: 12,
+                  generateLabels: function(chart) {
+                    const data = chart.data;
+                    const dynamicTextColor = getCurrentTextColor();
+                    if (data.labels.length && data.datasets.length) {
+                      return data.labels.map(function(label, i) {
+                        const meta = chart.getDatasetMeta(0);
+                        const style = meta.controller.getStyle(i);
+                        const value = data.datasets[0].data[i];
+                        const percentage = totalAmount > 0 ? ((value / totalAmount) * 100).toFixed(1) : 0;
+                        return {
+                          text: `${label} ${percentage}% (${value.toLocaleString('th-TH')} ฿)`,
+                          fillStyle: style.backgroundColor,
+                          strokeStyle: style.borderColor,
+                          lineWidth: style.borderWidth,
+                          fontColor: dynamicTextColor,
+                          hidden: isNaN(data.datasets[0].data[i]) || meta.data[i].hidden,
+                          index: i
+                        };
+                      });
+                    }
+                    return [];
+                  }
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    const value = context.raw || 0;
+                    const percentage = totalAmount > 0 ? ((value / totalAmount) * 100).toFixed(1) : 0;
+                    return `${context.label}: ${value.toLocaleString('th-TH')} ฿ (${percentage}%)`;
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+
+      function renderWalletHistory(logs) {
+        const walletLogList = document.getElementById('walletHistoryList');
+        walletLogList.innerHTML = '';
+        if (logs.length === 0) {
+          walletLogList.innerHTML = ' < li style = "text-align:center; color: var(--text-muted); padding: 12px;" > ยั งไม่ มีรายการบั นทึก < /li>';
+          return;
+        }
+        logs.forEach(item => {
+          const li = document.createElement('li');
+          li.className = 'history-item';
+          const isExpense = item.type === 'expense';
+          const isSavings = isInvestOrSaving(item.category);
+          let sign = isExpense ? '-' : '+';
+          let colorStyle = 'color: var(--success);';
+          if (isExpense) {
+            colorStyle = isSavings ? 'color: var(--accent);' : 'color: var(--danger);';
+          }
+          const catLabel = item.category || 'อื่นๆ';
+          li.innerHTML = `
+                    
+																					<div class="history-info">
+																						<div>
+																							<strong>[${catLabel}]</strong> ${item.note ? item.note : ''}
+                        
+																						</div>
+																						<div>${item.dateStr || item.date || ''}</div>
+																					</div>
+																					<div class="history-amount">
+																						<div style="font-weight: 500; ${colorStyle}">${sign}${item.amount.toLocaleString('th-TH', {minimumFractionDigits: 2})} ฿</div>
+																						<div>
+																							<button class="btn-delete" onclick="deleteTransaction(${item.id})">ลบ</button>
+																						</div>
+																					</div>
+                `;
+          walletLogList.appendChild(li);
+        });
+      }
+      // ---------------- CSV EXPORT LOGIC ----------------
+      function exportToCSV(records, fileName) {
+        if (!records || records.length === 0) {
+          alert('ไม่มีข้อมูล OT สำหรับส่งออกไฟล์');
+          return;
+        }
+        const baseRatePerHour = (profile.baseSalary / 30) / 8;
+        const headers = ['วันที่', 'กะการทำงาน', 'จำนวนชั่วโมง', 'อัตราคูณ', 'จำนวนเงิน (บาท)', 'หมายเหตุ'];
+        const csvRows = [
+          headers.join(','), ...records.map(row => {
+            const amount = (row.hours * baseRatePerHour * row.rate).toFixed(2);
+            const shiftText = row.shift === 'night' ? 'กะดึก' : 'กะวัน';
+            const cleanNote = row.note ? `"${row.note.replace(/"/g, '""')}"` : '""';
+            return [
+              row.date,
+              shiftText,
+              row.hours,
+              row.rate + 'x',
+              amount,
+              cleanNote
+            ].join(',');
+          })
+        ];
+        const csvString = '\uFEFF' + csvRows.join('\n');
+        const blob = new Blob([csvString], {
+          type: 'text/csv;charset=utf-8;'
+        });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `${fileName}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+
+      function exportMonthlyCSV() {
+        const selectedMonth = parseInt(document.getElementById('filterMonth').value);
+        const selectedYear = parseInt(document.getElementById('filterYear').value);
+        const monthlyRecords = otRecords.filter(rec => {
+          const d = new Date(rec.date);
+          return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+        });
+        exportToCSV(monthlyRecords, `OT_Report_${selectedYear}_${selectedMonth + 1}`);
+      }
+
+      function exportAllCSV() {
+        exportToCSV(otRecords, `OT_Report_All_History`);
+      }
+    </script>
+  </body>
+</html>
